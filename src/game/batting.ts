@@ -71,13 +71,15 @@ export function resolveShot(
         zone: swing.zone,
       };
     }
+    const intended = rng() < 0.4 ? 1 : 0;
     return {
       timing,
-      runs: rng() < 0.4 ? 1 : 0,
+      runs: intended,
       isBoundary: false,
       isSix: false,
       isWicket: false,
       zone: swing.zone,
+      intendedRuns: intended,
     };
   }
 
@@ -119,13 +121,15 @@ export function resolveShot(
   }
 
   if (timing === 'good') {
+    const intended = rng() < 0.4 ? 3 : 2;
     return {
       timing,
-      runs: rng() < 0.4 ? 3 : 2,
+      runs: intended,
       isBoundary: false,
       isSix: false,
       isWicket: false,
       zone: swing.zone,
+      intendedRuns: intended,
     };
   }
 
@@ -137,6 +141,7 @@ export function resolveShot(
     isSix: false,
     isWicket: false,
     zone: swing.zone,
+    intendedRuns: 1,
   };
 }
 
@@ -203,6 +208,7 @@ export function resolveLeachAction(
       isSix: false,
       isWicket: false,
       zone: null,
+      intendedRuns: 1,
     };
   }
   return {
@@ -213,4 +219,48 @@ export function resolveLeachAction(
     isWicket: false,
     zone: null,
   };
+}
+
+export type RunDecision = 'go' | 'stay';
+
+export type RunOutcome = {
+  runs: number;
+  runOut: boolean;
+};
+
+/**
+ * Decide actual runs scored given an intended run count and a run decision.
+ *
+ * - STAY → always 0 runs, never run out.
+ * - GO  → take up to `intendedRuns`. Probability of run-out scales with how
+ *         aggressively the player runs vs. how close the nearest fielder is
+ *         to the predicted ball line. Greedy 2 with a close fielder ≈ 30%.
+ *
+ * `fielderDistancePx` = distance from the nearest fielder to the ball's
+ * resting point. `safeDistancePx` is the threshold below which a single
+ * starts to be risky (tunable per scene).
+ *
+ * Pure & deterministic given rng.
+ */
+export function resolveRunOutcome(
+  intendedRuns: number,
+  fielderDistancePx: number,
+  safeDistancePx: number,
+  decision: RunDecision,
+  rng: () => number,
+): RunOutcome {
+  if (decision === 'stay' || intendedRuns <= 0) {
+    return { runs: 0, runOut: false };
+  }
+
+  // Closer fielder = more pressure. closenessFactor ∈ [0, 1].
+  const closeness = Math.max(0, Math.min(1, 1 - fielderDistancePx / safeDistancePx));
+  // Each additional run ramps risk; first run is mostly safe unless fielder is right there.
+  const greed = (intendedRuns - 1) * 0.18 + 0.04;
+  const runOutChance = Math.min(0.65, closeness * (0.18 + greed));
+
+  if (rng() < runOutChance) {
+    return { runs: 0, runOut: true };
+  }
+  return { runs: intendedRuns, runOut: false };
 }
