@@ -3,7 +3,8 @@ import type { InputController } from './InputController';
 
 /**
  * Maps arrow keys → direction, SPACE → swing, L → loft modifier,
- * B → block (Leach mode), N → nudge (Leach mode). Free fallback for desktop.
+ * B → block (Leach mode), N → nudge (Leach mode), X → run, Z → stay.
+ * Free fallback for desktop.
  */
 export function attachKeyboard(
   scene: Phaser.Scene,
@@ -20,6 +21,8 @@ export function attachKeyboard(
   const loft = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L);
   const block = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B);
   const nudge = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.N);
+  const runKey = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+  const stayKey = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
 
   const onUpdate = () => {
     const dir = {
@@ -35,14 +38,20 @@ export function attachKeyboard(
   const swingDown = () => controller.emit('swing');
   const blockDown = () => controller.emit('block');
   const nudgeDown = () => controller.emit('nudge');
+  const runDown = () => controller.emit('run');
+  const stayDown = () => controller.emit('stay');
   swing.on('down', swingDown);
   block.on('down', blockDown);
   nudge.on('down', nudgeDown);
+  runKey.on('down', runDown);
+  stayKey.on('down', stayDown);
 
   return () => {
     scene.events.off('update', onUpdate);
     swing.off('down', swingDown);
     block.off('down', blockDown);
     nudge.off('down', nudgeDown);
+    runKey.off('down', runDown);
+    stayKey.off('down', stayDown);
   };
 }

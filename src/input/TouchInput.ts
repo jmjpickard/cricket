@@ -122,17 +122,67 @@ export function attachTouch(scene: Phaser.Scene, controller: InputController): (
     .setVisible(false);
   nudgeBtn.on('pointerdown', () => controller.emit('nudge'));
 
+  // GO / STAY (run decision) — visible only while the scene emits 'runDecisionMode'.
+  const goBtn = scene.add
+    .circle(W - 110, H - 130, BUTTON_RADIUS, 0x44ddaa, 0.85)
+    .setScrollFactor(0)
+    .setDepth(1010)
+    .setInteractive({ useHandCursor: true })
+    .setVisible(false);
+  const goText = scene.add
+    .text(W - 110, H - 130, 'GO!', { fontSize: '22px', color: '#000', fontStyle: 'bold' })
+    .setOrigin(0.5)
+    .setScrollFactor(0)
+    .setDepth(1011)
+    .setVisible(false);
+  goBtn.on('pointerdown', () => controller.emit('run'));
+
+  const stayBtn = scene.add
+    .circle(W - 240, H - 130, BUTTON_RADIUS, 0xffaa44, 0.85)
+    .setScrollFactor(0)
+    .setDepth(1010)
+    .setInteractive({ useHandCursor: true })
+    .setVisible(false);
+  const stayText = scene.add
+    .text(W - 240, H - 130, 'STAY', { fontSize: '20px', color: '#000', fontStyle: 'bold' })
+    .setOrigin(0.5)
+    .setScrollFactor(0)
+    .setDepth(1011)
+    .setVisible(false);
+  stayBtn.on('pointerdown', () => controller.emit('stay'));
+
+  let leachActive = false;
+  let runActive = false;
+
+  const refreshButtons = () => {
+    const showRun = runActive;
+    const showLeach = !showRun && leachActive;
+    const showStokes = !showRun && !leachActive;
+    swingBtn.setVisible(showStokes);
+    loftBtn.setVisible(showStokes);
+    blockBtn.setVisible(showLeach);
+    blockText.setVisible(showLeach);
+    nudgeBtn.setVisible(showLeach);
+    nudgeText.setVisible(showLeach);
+    goBtn.setVisible(showRun);
+    goText.setVisible(showRun);
+    stayBtn.setVisible(showRun);
+    stayText.setVisible(showRun);
+  };
+
   const onLeachMode = (active: boolean) => {
-    swingBtn.setVisible(!active);
-    loftBtn.setVisible(!active);
-    blockBtn.setVisible(active);
-    blockText.setVisible(active);
-    nudgeBtn.setVisible(active);
-    nudgeText.setVisible(active);
+    leachActive = active;
+    refreshButtons();
+  };
+  const onRunDecisionMode = (active: boolean) => {
+    runActive = active;
+    refreshButtons();
   };
   scene.events.on('leachMode', onLeachMode);
+  scene.events.on('runDecisionMode', onRunDecisionMode);
 
   return () => {
     scene.events.off('leachMode', onLeachMode);
+    scene.events.off('runDecisionMode', onRunDecisionMode);
   };
 }
