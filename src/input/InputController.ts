@@ -7,7 +7,7 @@ export type InputState = {
   loftHeld: boolean;
 };
 
-export type InputEvent = 'swing' | 'block' | 'nudge' | 'run' | 'stay';
+export type InputEvent = 'swing' | 'block' | 'nudge' | 'run' | 'stay' | 'nextOver';
 
 export type InputListener = (event: InputEvent) => void;
 

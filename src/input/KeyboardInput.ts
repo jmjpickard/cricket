@@ -3,7 +3,7 @@ import type { InputController } from './InputController';
 
 /**
  * Maps arrow keys → direction, SPACE → swing, L → loft modifier,
- * B → block (Leach mode), N → nudge (Leach mode), X → run, Z → stay.
+ * B → block (Leach mode), N → nudge (Leach mode), X → run, ENTER → next-over.
  * Free fallback for desktop.
  */
 export function attachKeyboard(
@@ -22,7 +22,7 @@ export function attachKeyboard(
   const block = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B);
   const nudge = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.N);
   const runKey = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
-  const stayKey = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+  const nextOverKey = keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
 
   const onUpdate = () => {
     const dir = {
@@ -39,12 +39,12 @@ export function attachKeyboard(
   const blockDown = () => controller.emit('block');
   const nudgeDown = () => controller.emit('nudge');
   const runDown = () => controller.emit('run');
-  const stayDown = () => controller.emit('stay');
+  const nextOverDown = () => controller.emit('nextOver');
   swing.on('down', swingDown);
   block.on('down', blockDown);
   nudge.on('down', nudgeDown);
   runKey.on('down', runDown);
-  stayKey.on('down', stayDown);
+  nextOverKey.on('down', nextOverDown);
 
   return () => {
     scene.events.off('update', onUpdate);
@@ -52,6 +52,6 @@ export function attachKeyboard(
     block.off('down', blockDown);
     nudge.off('down', nudgeDown);
     runKey.off('down', runDown);
-    stayKey.off('down', stayDown);
+    nextOverKey.off('down', nextOverDown);
   };
 }

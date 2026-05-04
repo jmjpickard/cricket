@@ -5,9 +5,9 @@ const DPAD_RADIUS = 90;
 const BUTTON_RADIUS = 60;
 
 /**
- * On-screen analog D-pad (bottom-left) and SWING / BLOCK / NUDGE buttons
- * (bottom-right). Designed for thumbs in portrait. Direction vector is
- * normalised to [-1, 1] on each axis.
+ * On-screen analog D-pad (bottom-left), SWING / BLOCK / NUDGE buttons
+ * (bottom-right) and a persistent RUN button (above SWING) that the
+ * batter can tap any time the ball is in play to take another run.
  */
 export function attachTouch(scene: Phaser.Scene, controller: InputController): () => void {
   const W = scene.scale.width;
@@ -16,7 +16,7 @@ export function attachTouch(scene: Phaser.Scene, controller: InputController): (
   const dpadCx = 110;
   const dpadCy = H - 130;
 
-  const dpadBase = scene.add
+  scene.add
     .circle(dpadCx, dpadCy, DPAD_RADIUS, 0xffffff, 0.15)
     .setScrollFactor(0)
     .setDepth(1000);
@@ -26,11 +26,6 @@ export function attachTouch(scene: Phaser.Scene, controller: InputController): (
     .setDepth(1001);
 
   let dpadPointerId: number | null = null;
-
-  dpadBase.setInteractive(
-    new Phaser.Geom.Circle(DPAD_RADIUS, DPAD_RADIUS, DPAD_RADIUS),
-    Phaser.Geom.Circle.Contains,
-  );
 
   scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
     const dx = pointer.x - dpadCx;
@@ -66,12 +61,12 @@ export function attachTouch(scene: Phaser.Scene, controller: InputController): (
 
   // SWING button (bottom-right, large)
   const swingBtn = scene.add
-    .circle(W - 110, H - 130, BUTTON_RADIUS, 0xff4444, 0.7)
+    .circle(W - 110, H - 130, BUTTON_RADIUS, 0xff4444, 0.75)
     .setScrollFactor(0)
     .setDepth(1000)
     .setInteractive({ useHandCursor: true });
-  scene.add
-    .text(W - 110, H - 130, 'SWING', { fontSize: '18px', color: '#fff' })
+  const swingText = scene.add
+    .text(W - 110, H - 130, 'SWING', { fontSize: '18px', color: '#fff', fontStyle: 'bold' })
     .setOrigin(0.5)
     .setScrollFactor(0)
     .setDepth(1001);
@@ -83,7 +78,7 @@ export function attachTouch(scene: Phaser.Scene, controller: InputController): (
     .setScrollFactor(0)
     .setDepth(1000)
     .setInteractive({ useHandCursor: true });
-  scene.add
+  const loftText = scene.add
     .text(W - 110, H - 250, 'LOFT', { fontSize: '14px', color: '#000' })
     .setOrigin(0.5)
     .setScrollFactor(0)
@@ -95,13 +90,13 @@ export function attachTouch(scene: Phaser.Scene, controller: InputController): (
   // BLOCK / NUDGE — used when Leach is on strike. Hidden by default; toggled
   // via scene events.
   const blockBtn = scene.add
-    .circle(W - 200, H - 130, 44, 0x44aaff, 0.6)
+    .circle(W - 220, H - 130, 44, 0x44aaff, 0.6)
     .setScrollFactor(0)
     .setDepth(1000)
     .setInteractive({ useHandCursor: true })
     .setVisible(false);
   const blockText = scene.add
-    .text(W - 200, H - 130, 'BLOCK', { fontSize: '14px', color: '#fff' })
+    .text(W - 220, H - 130, 'BLOCK', { fontSize: '14px', color: '#fff' })
     .setOrigin(0.5)
     .setScrollFactor(0)
     .setDepth(1001)
@@ -109,80 +104,99 @@ export function attachTouch(scene: Phaser.Scene, controller: InputController): (
   blockBtn.on('pointerdown', () => controller.emit('block'));
 
   const nudgeBtn = scene.add
-    .circle(W - 200, H - 230, 44, 0x44ddaa, 0.6)
+    .circle(W - 220, H - 240, 44, 0x44ddaa, 0.6)
     .setScrollFactor(0)
     .setDepth(1000)
     .setInteractive({ useHandCursor: true })
     .setVisible(false);
   const nudgeText = scene.add
-    .text(W - 200, H - 230, 'NUDGE', { fontSize: '14px', color: '#000' })
+    .text(W - 220, H - 240, 'NUDGE', { fontSize: '14px', color: '#000' })
     .setOrigin(0.5)
     .setScrollFactor(0)
     .setDepth(1001)
     .setVisible(false);
   nudgeBtn.on('pointerdown', () => controller.emit('nudge'));
 
-  // GO / STAY (run decision) — visible only while the scene emits 'runDecisionMode'.
-  const goBtn = scene.add
-    .circle(W - 110, H - 130, BUTTON_RADIUS, 0x44ddaa, 0.85)
+  // Persistent RUN button — visible the whole match, but only tappable while
+  // the ball is in play (the scene listens & the controller logic ignores
+  // presses outside that window). Sits to the LEFT of SWING so a single thumb
+  // can hit either.
+  const runBtn = scene.add
+    .circle(W - 240, H - 130, BUTTON_RADIUS, 0x44ddaa, 0.85)
     .setScrollFactor(0)
     .setDepth(1010)
-    .setInteractive({ useHandCursor: true })
-    .setVisible(false);
-  const goText = scene.add
-    .text(W - 110, H - 130, 'GO!', { fontSize: '22px', color: '#000', fontStyle: 'bold' })
+    .setInteractive({ useHandCursor: true });
+  const runText = scene.add
+    .text(W - 240, H - 130, 'RUN', { fontSize: '22px', color: '#003322', fontStyle: 'bold' })
     .setOrigin(0.5)
     .setScrollFactor(0)
-    .setDepth(1011)
-    .setVisible(false);
-  goBtn.on('pointerdown', () => controller.emit('run'));
+    .setDepth(1011);
+  runBtn.on('pointerdown', () => controller.emit('run'));
 
-  const stayBtn = scene.add
-    .circle(W - 240, H - 130, BUTTON_RADIUS, 0xffaa44, 0.85)
+  // NEXT OVER button — full-screen modal action; visible only during the
+  // end-of-over modal phase.
+  const nextOverBtn = scene.add
+    .rectangle(W / 2, H * 0.62, 280, 80, 0xff4444, 0.95)
     .setScrollFactor(0)
-    .setDepth(1010)
+    .setDepth(3010)
     .setInteractive({ useHandCursor: true })
     .setVisible(false);
-  const stayText = scene.add
-    .text(W - 240, H - 130, 'STAY', { fontSize: '20px', color: '#000', fontStyle: 'bold' })
+  const nextOverText = scene.add
+    .text(W / 2, H * 0.62, 'NEXT OVER', { fontSize: '26px', color: '#ffffff', fontStyle: 'bold' })
     .setOrigin(0.5)
     .setScrollFactor(0)
-    .setDepth(1011)
+    .setDepth(3011)
     .setVisible(false);
-  stayBtn.on('pointerdown', () => controller.emit('stay'));
+  nextOverBtn.on('pointerdown', () => controller.emit('nextOver'));
 
   let leachActive = false;
-  let runActive = false;
+  let runArmed = false;
+  let nextOverActive = false;
 
   const refreshButtons = () => {
-    const showRun = runActive;
-    const showLeach = !showRun && leachActive;
-    const showStokes = !showRun && !leachActive;
-    swingBtn.setVisible(showStokes);
-    loftBtn.setVisible(showStokes);
-    blockBtn.setVisible(showLeach);
-    blockText.setVisible(showLeach);
-    nudgeBtn.setVisible(showLeach);
-    nudgeText.setVisible(showLeach);
-    goBtn.setVisible(showRun);
-    goText.setVisible(showRun);
-    stayBtn.setVisible(showRun);
-    stayText.setVisible(showRun);
+    const showLeachBatting = leachActive && !nextOverActive;
+    const showStokesBatting = !leachActive && !nextOverActive;
+    swingBtn.setVisible(showStokesBatting);
+    swingText.setVisible(showStokesBatting);
+    loftBtn.setVisible(showStokesBatting);
+    loftText.setVisible(showStokesBatting);
+    blockBtn.setVisible(showLeachBatting);
+    blockText.setVisible(showLeachBatting);
+    nudgeBtn.setVisible(showLeachBatting);
+    nudgeText.setVisible(showLeachBatting);
+
+    // RUN is always present but dimmed when not armed.
+    const runVisible = !nextOverActive;
+    runBtn.setVisible(runVisible);
+    runText.setVisible(runVisible);
+    runBtn.setFillStyle(0x44ddaa, runArmed ? 0.95 : 0.35);
+    runText.setColor(runArmed ? '#003322' : '#114433');
+
+    nextOverBtn.setVisible(nextOverActive);
+    nextOverText.setVisible(nextOverActive);
   };
 
   const onLeachMode = (active: boolean) => {
     leachActive = active;
     refreshButtons();
   };
-  const onRunDecisionMode = (active: boolean) => {
-    runActive = active;
+  const onRunArmed = (armed: boolean) => {
+    runArmed = armed;
+    refreshButtons();
+  };
+  const onNextOver = (active: boolean) => {
+    nextOverActive = active;
     refreshButtons();
   };
   scene.events.on('leachMode', onLeachMode);
-  scene.events.on('runDecisionMode', onRunDecisionMode);
+  scene.events.on('runArmed', onRunArmed);
+  scene.events.on('nextOverModal', onNextOver);
+
+  refreshButtons();
 
   return () => {
     scene.events.off('leachMode', onLeachMode);
-    scene.events.off('runDecisionMode', onRunDecisionMode);
+    scene.events.off('runArmed', onRunArmed);
+    scene.events.off('nextOverModal', onNextOver);
   };
 }
