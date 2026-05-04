@@ -40,6 +40,26 @@ describe('resolveShot', () => {
     expect(r.isSix).toBe(false);
   });
 
+  it('okay timing populates intendedRuns = runs', () => {
+    const r = resolveShot(
+      bowler,
+      { timingDeltaMs: 180, zone: 'cover', lofted: false, noSwing: false },
+      constantRng(0.5),
+    );
+    expect(r.runs).toBe(1);
+    expect(r.intendedRuns).toBe(1);
+  });
+
+  it('good timing intendedRuns matches runs (2 or 3)', () => {
+    const r = resolveShot(
+      bowler,
+      { timingDeltaMs: 80, zone: 'cover', lofted: false, noSwing: false },
+      constantRng(0.5),
+    );
+    expect([2, 3]).toContain(r.runs);
+    expect(r.intendedRuns).toBe(r.runs);
+  });
+
   it('perfect lofted to good zone = six', () => {
     const r = resolveShot(
       bowler,
