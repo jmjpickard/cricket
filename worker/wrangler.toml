@@ -4,8 +4,8 @@ compatibility_date = "2024-09-01"
 
 [[kv_namespaces]]
 binding = "LEADERBOARD"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
-preview_id = "REPLACE_WITH_KV_PREVIEW_ID"
+id = "860ba072deff4a49b1ecc6ed9e139a43"
+preview_id = "860ba072deff4a49b1ecc6ed9e139a43"
 
 [vars]
 MAX_RUNS = "73"
